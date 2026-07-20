@@ -1,3 +1,4 @@
+import 'package:fittrack/models/workout.dart';
 import 'package:flutter/material.dart';
 
 import '../../features/auth/login_screen.dart';
@@ -87,7 +88,7 @@ class AppRoutes {
 
       case RouteNames.workoutDetails:
         return _materialRoute(
-          const WorkoutDetailsScreen(),
+          WorkoutDetailsScreen(workout: settings.arguments as Workout),
           settings,
         );
 
