@@ -1,73 +1,74 @@
 /// ============================================================================
 /// FitTrack
 /// ----------------------------------------------------------------------------
-/// File: lib/providers/theme_provider.dart
+/// File: lib/providers/user_provider.dart
 ///
-/// Theme provider.
+/// User provider.
 ///
 /// Responsibilities
 /// ----------------------------------------------------------------------------
-/// • Manage application theme state.
-/// • Persist selected theme.
-/// • Expose current ThemeMode.
-/// • Notify the UI when theme changes.
+/// • Manage the current user's profile state.
+/// • Load and persist user information.
+/// • Update user profile.
+/// • Delete user profile.
+/// • Notify the UI when profile data changes.
 /// • Keep presentation logic separate from persistence.
 ///
 /// Used By
 /// ----------------------------------------------------------------------------
-/// • main.dart
-/// • MaterialApp
+/// • Home Screen
+/// • Profile Screen
 /// • Settings Screen
-/// • ThemeService
+/// • UserRepository
 /// ============================================================================
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
-import '../services/theme_service.dart';
+import '../models/user.dart';
+import '../repositories/user_repository.dart';
 
-/// Provider responsible for managing the application's theme.
+/// Provider responsible for managing the application's user profile.
 ///
-/// This provider communicates with [ThemeService] while exposing
-/// reactive theme state to the presentation layer.
+/// This provider communicates with [UserRepository] while exposing
+/// reactive state to the presentation layer.
 ///
-/// Theme persistence remains inside the service layer.
-final class ThemeProvider extends ChangeNotifier {
-  ThemeProvider();
+/// Persistence remains inside the repository, while this provider
+/// focuses on state management and UI notifications.
+final class UserProvider extends ChangeNotifier {
+  /// Creates a [UserProvider].
+  UserProvider({
+    UserRepository? repository,
+  }) : _repository = repository ?? const UserRepository();
 
-  ThemeMode _themeMode = ThemeMode.system;
+  final UserRepository _repository;
+
+  User? _user;
   bool _isLoading = false;
 
   // ===========================================================================
   // Getters
   // ===========================================================================
 
-  /// Current theme mode.
-  ThemeMode get themeMode => _themeMode;
+  /// Returns the current user.
+  User? get user => _user;
 
-  /// Returns whether Dark Mode is active.
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-
-  /// Returns whether Light Mode is active.
-  bool get isLightMode => _themeMode == ThemeMode.light;
-
-  /// Returns whether System Theme is active.
-  bool get isSystemMode => _themeMode == ThemeMode.system;
-
-  /// Indicates whether an operation is currently running.
+  /// Returns whether user data is currently loading.
   bool get isLoading => _isLoading;
+
+  /// Returns whether a user profile exists.
+  bool get hasUser => _user != null;
 
   // ===========================================================================
   // Initialization
   // ===========================================================================
 
-  /// Loads the persisted theme.
+  /// Loads the persisted user profile.
   Future<void> initialize() async {
     _setLoading(true);
 
     try {
-      _themeMode = ThemeService.getThemeMode();
+      _user = await _repository.getCurrentUser();
     } finally {
       _setLoading(false);
 
@@ -76,36 +77,51 @@ final class ThemeProvider extends ChangeNotifier {
   }
 
   // ===========================================================================
-  // Theme Management
+  // CRUD Operations
   // ===========================================================================
 
-  /// Changes the application's theme.
-  Future<void> setThemeMode(
-    ThemeMode themeMode,
-  ) async {
-    if (_themeMode == themeMode) {
+  /// Saves a new user profile.
+  Future<void> saveUser(User user) async {
+    _setLoading(true);
+
+    try {
+      await _repository.saveUser(user);
+
+      _user = user;
+
+      notifyListeners();
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Updates the current user profile.
+  Future<void> updateUser(User user) async {
+    _setLoading(true);
+
+    try {
+      await _repository.updateUser(user);
+
+      _user = user;
+
+      notifyListeners();
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Deletes the current user profile.
+  Future<void> deleteUser() async {
+    if (_user == null) {
       return;
     }
 
     _setLoading(true);
 
     try {
-      await ThemeService.saveThemeMode(themeMode);
+      await _repository.deleteUser(_user!.id);
 
-      _themeMode = themeMode;
-
-      notifyListeners();
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Toggles between Light and Dark themes.
-  Future<void> toggleTheme() async {
-    _setLoading(true);
-
-    try {
-      _themeMode = await ThemeService.toggleTheme();
+      _user = null;
 
       notifyListeners();
     } finally {
@@ -113,22 +129,7 @@ final class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  /// Restores the System theme.
-  Future<void> resetTheme() async {
-    _setLoading(true);
-
-    try {
-      await ThemeService.resetTheme();
-
-      _themeMode = ThemeMode.system;
-
-      notifyListeners();
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Reloads the persisted theme.
+  /// Reloads the current user profile from storage.
   Future<void> refresh() async {
     await initialize();
   }

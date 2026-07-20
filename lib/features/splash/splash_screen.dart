@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/constants/app_duration.dart';
 import '../../core/routes/route_names.dart';
 import '../../core/services/navigation_service.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 import 'widgets/splash_body.dart';
 
 /// ============================================================================
@@ -17,9 +20,11 @@ import 'widgets/splash_body.dart';
 /// Responsibilities
 /// ----------------------------------------------------------------------------
 /// • Display the FitTrack splash experience.
-/// • Handle splash duration.
-/// • Navigate to the onboarding screen.
-/// • Keep UI and navigation logic separated.
+/// • Initialize application startup flow.
+/// • Check onboarding status.
+/// • Check authentication status.
+/// • Navigate to the correct screen.
+/// • Keep UI and business logic separated.
 ///
 /// Used By
 /// ----------------------------------------------------------------------------
@@ -28,30 +33,66 @@ import 'widgets/splash_body.dart';
 /// ============================================================================
 class SplashScreen extends StatefulWidget {
   /// Creates a [SplashScreen].
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+  });
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() =>
+      _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState
+    extends State<SplashScreen> {
   Timer? _navigationTimer;
 
   @override
   void initState() {
     super.initState();
-    _startNavigation();
+
+    _navigationTimer = Timer(
+      AppDuration.medium,
+      _initializeApplication,
+    );
   }
 
-  void _startNavigation() {
-    _navigationTimer = Timer(
-      // Use a default duration here to avoid dependency on AppDuration.splash
-      const Duration(seconds: 2),
-      () {
-        NavigationService.pushReplacementNamed(
-          RouteNames.onboarding,
-        );
-      },
+  Future<void> _initializeApplication() async {
+    if (!mounted) {
+      return;
+    }
+
+    final settingsProvider =
+        context.read<SettingsProvider>();
+
+    final authProvider =
+        context.read<AuthProvider>();
+
+    final onboardingCompleted =
+        settingsProvider.onboardingCompleted;
+
+    final authenticated =
+        authProvider.isAuthenticated;
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!onboardingCompleted) {
+      NavigationService.pushReplacementNamed(
+        RouteNames.onboarding,
+      );
+      return;
+    }
+
+    if (!authenticated) {
+      NavigationService.pushReplacementNamed(
+        RouteNames.login,
+      );
+      return;
+    }
+
+    NavigationService.pushReplacementNamed(
+      RouteNames.home,
     );
   }
 

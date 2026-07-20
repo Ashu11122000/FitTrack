@@ -21,6 +21,7 @@ import '../../../widgets/inputs/password_field.dart';
 /// • Display login form.
 /// • Validate user input.
 /// • Handle Remember Me option.
+/// • Simulate authentication for demo purposes.
 /// • Navigate to Home after successful validation.
 /// • Keep authentication UI modular.
 ///
@@ -58,7 +59,6 @@ class _LoginFormState extends State<LoginForm> {
   // ===========================================================================
 
   bool _rememberMe = false;
-
   bool _isLoading = false;
 
   @override
@@ -83,11 +83,14 @@ class _LoginFormState extends State<LoginForm> {
       _isLoading = true;
     });
 
+    // Simulate a network request for demo purposes.
     await Future.delayed(
       const Duration(milliseconds: 800),
     );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _isLoading = false;
@@ -146,17 +149,19 @@ class _LoginFormState extends State<LoginForm> {
               contentPadding: EdgeInsets.zero,
               controlAffinity:
                   ListTileControlAffinity.leading,
-              title: Text(
+              title: const Text(
                 AppStrings.rememberMe,
               ),
-              onChanged: (value) {
-                setState(() {
-                  _rememberMe = value ?? false;
-                });
-              },
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _rememberMe = value ?? false;
+                      });
+                    },
             ),
 
-                        const SizedBox(
+            const SizedBox(
               height: AppSpacing.lg,
             ),
 
@@ -166,10 +171,12 @@ class _LoginFormState extends State<LoginForm> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {
-                  // TODO(Ashish): Implement Forgot Password
-                },
-                child: Text(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        // TODO(Ashish): Implement Forgot Password
+                      },
+                child: const Text(
                   AppStrings.forgotPassword,
                 ),
               ),
@@ -185,7 +192,7 @@ class _LoginFormState extends State<LoginForm> {
             PrimaryButton(
               text: AppStrings.signIn,
               isLoading: _isLoading,
-              onPressed: _login,
+              onPressed: _isLoading ? null : _login,
             ),
           ],
         ),
